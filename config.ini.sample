@@ -1,0 +1,12 @@
+[admin]
+APIUSER = {APIユーザー名}
+APIPASS = {APIパスワード}
+TENANT = {テナントID}
+
+[server]
+ROOTPASS = {ROOTパスワード}
+SECGRP = {セキュリティグループ}
+STAG = {ネームタグ}
+IMAGENAME = {VPSイメージ名}
+FLAVORNAME = {VPSプラン名}
+SCRIPTPATH = {スタートアップスクリプトのパス}
