@@ -57,6 +57,9 @@ python vps_manage.py --create -s <startup_scriptパス>
 python vps_manage.py --create -s <startup_scriptパス> -t <タグ名> -p <パスワード>
 ```
 
+※ disable_root_ssh.sh はstartup_scriptのサンプル
+
+
 ### VPSサーバの削除
 ```bash
 python vps_manage.py --delete <server_id>

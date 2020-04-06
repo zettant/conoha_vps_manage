@@ -4,9 +4,13 @@ APIPASS = {APIパスワード}
 TENANT = {テナントID}
 
 [server]
-ROOTPASS = {ROOTパスワード}
+ROOTPASS = {ROOTパスワード}   <-- 省略するとコマンドライン引数から取得する
+STAG = {ネームタグ}           <-- 省略するとコマンドライン引数から取得する
 SECGRP = {セキュリティグループ}
-STAG = {ネームタグ}
 IMAGENAME = {VPSイメージ名}
 FLAVORNAME = {VPSプラン名}
 SCRIPTPATH = {スタートアップスクリプトのパス}
+
+[rule]
+SECURITYGROUP = ssh-https   <--- サンプル
+ALLOW_PORTS = 22,443
