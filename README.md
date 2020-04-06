@@ -17,6 +17,11 @@ pip install -r requirements.txt
 python vps_manage.py -l
 ```
 
+### VPSサーバのネームタグを指定してIPv4アドレスを取得
+```bash
+python vps_manage.py --ip <name>
+```
+
 ### VPSのプラン一覧取得
 ```bash
 python vps_manage.py -c plans

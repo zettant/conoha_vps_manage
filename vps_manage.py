@@ -43,6 +43,7 @@ def _parser():
     argparser.add_argument('-p', '--password', type=str, help='admin password of the server to create')
     argparser.add_argument('-c', '--check', type=str, help='check conoha parameter list')
     argparser.add_argument('-l', '--list', action='store_true', help='list up conoha servers')
+    argparser.add_argument('--ip', type=str, help='get IP address of the server')
     argparser.add_argument('--start', type=str, help='start server instance')
     argparser.add_argument('--reboot', type=str, help='reboot server instance')
     argparser.add_argument('--shutdown', type=str, help='shutdown server instance')
@@ -228,13 +229,16 @@ def get_server_list(tid, token):
         result = []
         _res = requests.get(_api, headers=_header)
         for server in json.loads(_res.content)['servers']:
-            addrs = [ "[%s]"%a["addr"] for a in list(server["addresses"].values())[0] ]
-            result.append("{name}: status:{status}, id:{id}, address:{address}".format(
-                name=server["metadata"]["instance_name_tag"],
-                status=server["status"],
-                id=server["id"],
-                address="".join(addrs)
-            ))
+            info = dict()
+            info["name"] = server["metadata"]["instance_name_tag"]
+            info["status"] = server["status"]
+            info["id"] = server["id"]
+            for addr in [ "%s"%a["addr"] for a in list(server["addresses"].values())[0] ]:
+                if ":" in addr:
+                    info["ipv6"] = addr
+                else:
+                    info["ipv4"] = addr
+            result.append(info)
         return result
     except (ValueError, NameError, ConnectionError, RequestException, HTTPError) as e:
         print('Error: Could not get ConoHa flavor uuid.', e)
@@ -327,6 +331,13 @@ if __name__ == '__main__':
             show_plan_list(tenant, token)
         sys.exit(0)
 
+    if arg.ip is not None:
+        for s in get_server_list(tenant, token):
+            if s["name"] == arg.ip:
+                print(s["ipv4"])
+                break
+        sys.exit(0)
+
     if arg.list:
         print("\n".join(get_server_list(tenant, token)))
         sys.exit(0)
@@ -373,6 +384,6 @@ if __name__ == '__main__':
                   server_pass, flavor_uuid, image_uuid, startup_script)
     time.sleep(10)
     for s in get_server_list(tenant, token):
-        if "%s:" % server_tag in s:
+        if s["name"] == server_tag:
             print(s)
             break
