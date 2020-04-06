@@ -32,7 +32,7 @@ CONOHA_NETWORK_ENDPOINT_BASE = "https://networking.tyo1.conoha.io/v2.0/"
 
 def _parser():
     usage = 'python {} [-i ini file] [-c] [-f script_file] [-c images|security_groups|plans|] ' \
-            '[-t name_tag] [-p amdin_password] ' \
+            '[-t name_tag] [-p admin_password] ' \
             '[--start server_id] [--reboot server_id] [--shutdown sevrer_id] [--delete sevrer_id] ' \
             '[--rule] [--help]'.format(__file__)
     argparser = ArgumentParser(usage=usage)
@@ -339,7 +339,7 @@ if __name__ == '__main__':
         sys.exit(0)
 
     if arg.list:
-        print("\n".join(get_server_list(tenant, token)))
+        pprint.pprint(get_server_list(tenant, token))
         sys.exit(0)
 
     if arg.rule:
