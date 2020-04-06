@@ -339,7 +339,7 @@ if __name__ == '__main__':
         sys.exit(0)
 
     if arg.list:
-        print("\n".join(get_server_list(tenant, token)))
+        pprint.pprint(get_server_list(tenant, token))
         sys.exit(0)
 
     if arg.rule:
