@@ -382,8 +382,4 @@ if __name__ == '__main__':
     print("** please wait for a while")
     create_server(tenant, server_conf["SECGRP"], server_tag, token,
                   server_pass, flavor_uuid, image_uuid, startup_script)
-    time.sleep(10)
-    for s in get_server_list(tenant, token):
-        if s["name"] == server_tag:
-            print(s)
-            break
+
