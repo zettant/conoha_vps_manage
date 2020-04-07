@@ -28,13 +28,14 @@ import pprint
 CONOHA_IDENTITY_ENDPOINT_BASE = "https://identity.tyo1.conoha.io/v2.0/"
 CONOHA_COMPUTE_ENDPOINT_BASE = "https://compute.tyo1.conoha.io/v2/"
 CONOHA_NETWORK_ENDPOINT_BASE = "https://networking.tyo1.conoha.io/v2.0/"
+CONOHA_DNS_ENDPOINT_BASE = "https://dns-service.tyo1.conoha.io/v1/"
 
 
 def _parser():
     usage = 'python {} [-i ini file] [-c] [-f script_file] [-c images|security_groups|plans|] ' \
             '[-t name_tag] [-p admin_password] ' \
-            '[--start server_id] [--reboot server_id] [--shutdown sevrer_id] [--delete sevrer_id] ' \
-            '[--rule] [--help]'.format(__file__)
+            '[--start server_id] [--reboot server_id] [--shutdown server_id] [--delete server_id] ' \
+            '[--rule] [--dns domain] [--dns-add domain] [--dns-del domain] [--hostname name] [--address ip_addr] [--help]'.format(__file__)
     argparser = ArgumentParser(usage=usage)
     argparser.add_argument('-i', '--ini', type=str, default="./config.ini", help='config file')
     argparser.add_argument('--create', action='store_true', help='create a new server')
@@ -43,6 +44,11 @@ def _parser():
     argparser.add_argument('-p', '--password', type=str, help='admin password of the server to create')
     argparser.add_argument('-c', '--check', type=str, help='check conoha parameter list')
     argparser.add_argument('-l', '--list', action='store_true', help='list up conoha servers')
+    argparser.add_argument('--dns', type=str, help='dns records of the domain')
+    argparser.add_argument('--dns-add', type=str, help='add A record in the DNS')
+    argparser.add_argument('--dns-del', type=str, help='delete A record in the DNS')
+    argparser.add_argument('--address', type=str, help='IP address of the A record')
+    argparser.add_argument('--hostname', type=str, help='hostname of the A record')
     argparser.add_argument('--ip', type=str, help='get IP address of the server')
     argparser.add_argument('--start', type=str, help='start server instance')
     argparser.add_argument('--reboot', type=str, help='reboot server instance')
@@ -304,6 +310,85 @@ def add_firewall_rule(token, group_id, port):
         sys.exit(1)
 
 
+def get_domain_list(token):
+    """Function of getting Conoha Domain list"""
+    _api = CONOHA_DNS_ENDPOINT_BASE + 'domains'
+    _header = {'Accept': 'application/json', 'X-Auth-Token': token}
+    try:
+        result = {}
+        _res = requests.get(_api, headers=_header)
+        for record in json.loads(_res.content)['domains']:
+            result[record["name"]] = record["id"]
+        return result
+    except (ValueError, NameError, ConnectionError, RequestException, HTTPError) as e:
+        print('Error: Could not get ConoHa domain list.', e)
+        sys.exit(1)
+
+
+def get_dns_records(token, domain_id):
+    """Function of getting Conoha record list"""
+    _api = CONOHA_DNS_ENDPOINT_BASE + 'domains/' + domain_id + '/records'
+    _header = {'Accept': 'application/json', 'X-Auth-Token': token}
+    try:
+        result = {}
+        _res = requests.get(_api, headers=_header)
+        for record in json.loads(_res.content)['records']:
+            result[record["id"]] = {
+                "name": record["name"],
+                "type": record["type"],
+                "ip": record["data"]
+            }
+        return result
+    except (ValueError, NameError, ConnectionError, RequestException, HTTPError) as e:
+        print('Error: Could not get ConoHa domain list.', e)
+        sys.exit(1)
+
+
+def add_dns_record(token, domain_id, name, ip_address, rec_type="A"):
+    """Function of adding A record of DNS"""
+    _api = CONOHA_DNS_ENDPOINT_BASE + 'domains/' + domain_id + '/records'
+    _header = {'Content-Type': 'application/json', 'Accept': 'application/json', 'X-Auth-Token': token}
+    _body = {
+        "name": name,
+        "type": rec_type,
+        "data": ip_address
+    }
+    print(_body)
+
+    try:
+        _res = requests.post(_api, data=json.dumps(_body), headers=_header)
+        if _res.status_code != 200:
+            print("ERROR: ", _res.text)
+            sys.exit(1)
+    except (ValueError, NameError, ConnectionError, RequestException, HTTPError) as e:
+        print('Error: Could not set dns record.', e)
+        sys.exit(1)
+    except KeyError:
+        print('Error Code   : {code}\nError Message: {res}'.format(
+            code=_res.text['badRequest']['message'],
+            res=_res.text['badRequest']['code']))
+        sys.exit(1)
+
+
+def del_dns_record(token, domain_id, record_id):
+    """Function of deleting A record of DNS"""
+    _api = CONOHA_DNS_ENDPOINT_BASE + 'domains/' + domain_id + '/records/' + record_id
+    _header = {'Accept': 'application/json', 'X-Auth-Token': token}
+    try:
+        _res = requests.delete(_api, headers=_header)
+        if _res.status_code != 200:
+            print("ERROR: ", _res.text)
+            sys.exit(1)
+    except (ValueError, NameError, ConnectionError, RequestException, HTTPError) as e:
+        print('Error: Could not delete dns record.', e)
+        sys.exit(1)
+    except KeyError:
+        print('Error Code   : {code}\nError Message: {res}'.format(
+            code=_res.text['badRequest']['message'],
+            res=_res.text['badRequest']['code']))
+        sys.exit(1)
+
+
 def get_startup_base64(src_path):
     """Function of transforming from shell script to base64 value"""
     with open(src_path, encoding='utf-8') as f:
@@ -314,6 +399,13 @@ def get_startup_base64(src_path):
     except (ValueError, NameError, ConnectionError, RequestException, HTTPError) as e:
         print('Error: Could not get base64 value of startup script.\n', e)
         sys.exit(1)
+
+
+def get_ip(ip_addr):
+    for s in get_server_list(tenant, token):
+        if s["name"] == ip_addr:
+            return s["ipv4"]
+    return None
 
 
 if __name__ == '__main__':
@@ -332,10 +424,7 @@ if __name__ == '__main__':
         sys.exit(0)
 
     if arg.ip is not None:
-        for s in get_server_list(tenant, token):
-            if s["name"] == arg.ip:
-                print(s["ipv4"])
-                break
+        print(get_ip(arg.ip))
         sys.exit(0)
 
     if arg.list:
@@ -347,6 +436,34 @@ if __name__ == '__main__':
         for port in rule_conf["ALLOW_PORTS"].strip().split(","):
             add_firewall_rule(token, sec_id, port)
         show_security_group_list(tenant, token)
+        sys.exit(0)
+
+    if arg.dns is not None:
+        domain_id = get_domain_list(token).get(arg.dns+".", None)
+        if domain_id is None:
+            print("No such domain")
+            sys.exit(1)
+        pprint.pprint(get_dns_records(token, domain_id))
+        sys.exit(0)
+    elif arg.dns_add is not None:
+        domain_id = get_domain_list(token).get(arg.dns_add+".", None)
+        if domain_id is None:
+            print("No such domain")
+            sys.exit(1)
+        add_dns_record(token, domain_id, arg.hostname+"."+arg.dns_add+".", arg.address)
+        pprint.pprint(get_dns_records(token, domain_id))
+        sys.exit(0)
+    elif arg.dns_del is not None:
+        domain_id = get_domain_list(token).get(arg.dns_del+".", None)
+        if domain_id is None:
+            print("No such domain")
+            sys.exit(1)
+        for rec_id, rec in get_dns_records(token, domain_id).items():
+            if rec["name"] != arg.hostname:
+                continue
+            del_dns_record(token, domain_id, rec_id)
+            break
+        pprint.pprint(get_dns_records(token, domain_id))
         sys.exit(0)
 
     if arg.start is not None:
