@@ -33,8 +33,8 @@ CONOHA_DNS_ENDPOINT_BASE = "https://dns-service.tyo1.conoha.io/v1/"
 
 def _parser():
     usage = 'python {} [-i ini file] [-c] [-f script_file] [-c images|security_groups|plans|] ' \
-            '[-t name_tag] [-p admin_password] ' \
-            '[--start server_id] [--reboot server_id] [--shutdown server_id] [--delete server_id] ' \
+            '[-t name_tag] [-p admin_password] [--ip name_tag]' \
+            '[--start name_tag] [--reboot name_tag] [--shutdown name_tag] [--delete name_tag] ' \
             '[--rule] [--dns domain] [--dns-add domain] [--dns-del domain] [--hostname name] [--address ip_addr] [--help]'.format(__file__)
     argparser = ArgumentParser(usage=usage)
     argparser.add_argument('-i', '--ini', type=str, default="./config.ini", help='config file')
@@ -53,8 +53,9 @@ def _parser():
     argparser.add_argument('--start', type=str, help='start server instance')
     argparser.add_argument('--reboot', type=str, help='reboot server instance')
     argparser.add_argument('--shutdown', type=str, help='shutdown server instance')
-    argparser.add_argument('--delete', type=str, help='delete server instance')
-    argparser.add_argument('--rule', action='store_true', help='create a new security group and its rule')
+    argparser.add_argument('--delete', type=str, help='delete server instance with the tag name')
+    argparser.add_argument('--create-rule', action='store_true', help='create a new security group and its rule')
+    argparser.add_argument('--security-group-del', type=str, help='delete security group')
     args = argparser.parse_args()
     return args
 
@@ -228,26 +229,26 @@ def send_server_action(tid, token, server_id, body):
 
 
 def get_server_list(tid, token):
-    """Function of getting Conoha Server list"""
+    """Function of getting ConoHa Server list"""
     _api = CONOHA_COMPUTE_ENDPOINT_BASE + tid + '/servers/detail'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
     try:
-        result = []
+        result = {}
         _res = requests.get(_api, headers=_header)
         for server in json.loads(_res.content)['servers']:
-            info = dict()
-            info["name"] = server["metadata"]["instance_name_tag"]
-            info["status"] = server["status"]
-            info["id"] = server["id"]
+            name = server["metadata"]["instance_name_tag"]
+            result[name] = {
+                "status": server["status"],
+                "id": server["id"]
+            }
             for addr in [ "%s"%a["addr"] for a in list(server["addresses"].values())[0] ]:
                 if ":" in addr:
-                    info["ipv6"] = addr
+                    result[name]["ipv6"] = addr
                 else:
-                    info["ipv4"] = addr
-            result.append(info)
+                    result[name]["ipv4"] = addr
         return result
     except (ValueError, NameError, ConnectionError, RequestException, HTTPError) as e:
-        print('Error: Could not get ConoHa flavor uuid.', e)
+        print('Error: Could not get ConoHa server list.', e)
         sys.exit(1)
 
 
@@ -268,6 +269,28 @@ def create_security_group(token, group_name):
             print("ERROR: ", _res.text)
             sys.exit(1)
         return json.loads(_res.content)['security_group']['id']
+
+    except (ValueError, NameError, ConnectionError, RequestException, HTTPError) as e:
+        print('Error: Could not create server.', e)
+        sys.exit(1)
+    except KeyError:
+        print('Error Code   : {code}\nError Message: {res}'.format(
+            code=_res.text['badRequest']['message'],
+            res=_res.text['badRequest']['code']))
+        sys.exit(1)
+
+
+def delete_security_group(token, group_id):
+    """Function of deleting security group"""
+    _api = CONOHA_NETWORK_ENDPOINT_BASE + 'security-groups/' + group_id
+    _header = {'Accept': 'application/json', 'X-Auth-Token': token}
+
+    try:
+        _res = requests.delete(_api, headers=_header)
+        if _res.status_code != 204:
+            print("ERROR: ", _res.text)
+            sys.exit(1)
+        return
 
     except (ValueError, NameError, ConnectionError, RequestException, HTTPError) as e:
         print('Error: Could not create server.', e)
@@ -424,18 +447,26 @@ if __name__ == '__main__':
         sys.exit(0)
 
     if arg.ip is not None:
-        print(get_ip(arg.ip))
+        res = get_server_list(tenant, token).get(arg.ip, None)
+        if res is not None:
+            print(res["ipv4"])
+        else:
+            print("***ERROR***")
+            sys.exit(1)
         sys.exit(0)
 
     if arg.list:
         pprint.pprint(get_server_list(tenant, token))
         sys.exit(0)
 
-    if arg.rule:
+    if arg.create_rule:
         sec_id = create_security_group(token, rule_conf["SECURITYGROUP"])
         for port in rule_conf["ALLOW_PORTS"].strip().split(","):
             add_firewall_rule(token, sec_id, port)
         show_security_group_list(tenant, token)
+        sys.exit(0)
+    elif arg.security_group_del is not None:
+        delete_security_group(token, arg.security_group_del)
         sys.exit(0)
 
     if arg.dns is not None:
@@ -467,16 +498,24 @@ if __name__ == '__main__':
         sys.exit(0)
 
     if arg.start is not None:
-        send_server_action(tenant, token, arg.start, {"os-start": "null"})
+        svr = get_server_list(tenant, token).get(arg.start, None)
+        if "id" in svr:
+            send_server_action(tenant, token, svr["id"], {"os-start": "null"})
         sys.exit(0)
     elif arg.reboot is not None:
-        send_server_action(tenant, token, arg.reboot, {"reboot": {"type": "soft"}})
+        svr = get_server_list(tenant, token).get(arg.reboot, None)
+        if "id" in svr:
+            send_server_action(tenant, token, svr["id"], {"reboot": {"type": "soft"}})
         sys.exit(0)
     elif arg.shutdown is not None:
-        send_server_action(tenant, token, arg.shutdown, {"os-stop": "null"})
+        svr = get_server_list(tenant, token).get(arg.shutdown, None)
+        if "id" in svr:
+            send_server_action(tenant, token, svr["id"], {"os-stop": "null"})
         sys.exit(0)
     elif arg.delete is not None:
-        delete_server(tenant, token, arg.delete)
+        svr = get_server_list(tenant, token).get(arg.delete, None)
+        if "id" in svr:
+            delete_server(tenant, token, svr["id"])
         sys.exit(0)
 
     if not arg.create:

@@ -12,5 +12,5 @@ FLAVORNAME = {VPSプラン名}
 SCRIPTPATH = {スタートアップスクリプトのパス}
 
 [rule]
-SECURITYGROUP = ssh-https   <--- サンプル
-ALLOW_PORTS = 22,443
+SECURITYGROUP = allow-ssh-web
+ALLOW_PORTS = 22,80,443
