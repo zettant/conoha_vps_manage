@@ -489,7 +489,7 @@ if __name__ == '__main__':
             print("No such domain")
             sys.exit(1)
         for rec_id, rec in get_dns_records(token, domain_id).items():
-            if rec["name"] != arg.hostname:
+            if rec["name"] != arg.hostname+"."+arg.dns_del+".":
                 continue
             del_dns_record(token, domain_id, rec_id)
             break
