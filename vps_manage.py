@@ -376,7 +376,6 @@ def add_dns_record(token, domain_id, name, ip_address, rec_type="A"):
         "type": rec_type,
         "data": ip_address
     }
-    print(_body)
 
     try:
         _res = requests.post(_api, data=json.dumps(_body), headers=_header)
