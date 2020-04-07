@@ -38,7 +38,7 @@ python vps_manage.py -c security_groups
 ```
 
 ### VPSのセキュリティグループおよびファイアウォールのルール作成
-* まずは、config.intに\[rule\]を記載しておく
+* まずは、config.iniに\[rule\]を記載しておく
 ```bash
 python vps_manage.py --rule
 ```
