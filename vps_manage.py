@@ -247,7 +247,7 @@ def get_server_list(tid, token):
 
 def create_security_group(token, group_name):
     """Function of creating security group"""
-    _api = CONOHA_NETWORK_ENDPOINT_BASE + '/security-groups'
+    _api = CONOHA_NETWORK_ENDPOINT_BASE + 'security-groups'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
     _body = {
         "security_group": {
@@ -275,7 +275,7 @@ def create_security_group(token, group_name):
 
 def add_firewall_rule(token, group_id, port):
     """Function of adding firewall rule in the security group"""
-    _api = CONOHA_NETWORK_ENDPOINT_BASE + '/security-group-rules'
+    _api = CONOHA_NETWORK_ENDPOINT_BASE + 'security-group-rules'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
     _body = {
         "security_group_rule": {
