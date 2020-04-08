@@ -25,12 +25,6 @@ import time
 import pprint
 
 
-CONOHA_IDENTITY_ENDPOINT_BASE = "https://identity.tyo1.conoha.io/v2.0/"
-CONOHA_COMPUTE_ENDPOINT_BASE = "https://compute.tyo1.conoha.io/v2/"
-CONOHA_NETWORK_ENDPOINT_BASE = "https://networking.tyo1.conoha.io/v2.0/"
-CONOHA_DNS_ENDPOINT_BASE = "https://dns-service.tyo1.conoha.io/v1/"
-
-
 def _parser():
     usage = 'python {} [-i ini file] [-c] [-f script_file] [-c images|security_groups|plans|] ' \
             '[-t name_tag] [-p admin_password] [--ip name_tag]' \
