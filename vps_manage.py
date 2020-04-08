@@ -66,7 +66,7 @@ def read_config(filepath):
         sys.exit(1)
     config_file = configparser.ConfigParser()
     config_file.read(filepath)
-    return config_file["admin"], config_file["server"], config_file["rule"]
+    return config_file["admin"], config_file["server"], config_file["rule"], config_file["api"]
 
 
 def get_conoha_token(base_url, tid, user, passwd):
