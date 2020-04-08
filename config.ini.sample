@@ -6,13 +6,13 @@ TENANT = {テナントID} ex: 081a3dbedcb84482xxxxxxxxxxxxxxxx
 [server]
 ROOTPASS = {ROOTパスワード}   <-- 省略するとコマンドライン引数から取得する
 STAG = {ネームタグ}           <-- 省略するとコマンドライン引数から取得する
-SECGRP = {セキュリティグループ} ex: ssh-http-https
+SECGRP = {セキュリティグループ} ex: allow-ssh-web
 IMAGENAME = {VPSイメージ名} ex. vmi-ubuntu-18.04-amd64-20gb
 FLAVORNAME = {VPSプラン名} ex. g-c2m1d100
 SCRIPTPATH = {スタートアップスクリプトのパス} ./disable_root_ssh.sh
 
 [rule]
-SECURITYGROUP = ssh-http-https   <--- サンプル
+SECURITYGROUP = allow-ssh-web   <--- サンプル
 ALLOW_PORTS = 22,80,443
 
 [api]
@@ -20,3 +20,4 @@ CONOHA_IDENTITY_ENDPOINT_BASE = https://identity.tyo2.conoha.io/v2.0/ <-- ユー
 CONOHA_COMPUTE_ENDPOINT_BASE = https://compute.tyo2.conoha.io/v2/ <-- ユーザ毎に異なるのでconohaユーザーページから確認が必要
 CONOHA_NETWORK_ENDPOINT_BASE = https://networking.tyo2.conoha.io/v2.0/ <-- ユーザ毎に異なるのでconohaユーザーページから確認が必要
 CONOHA_DNS_ENDPOINT_BASE = "https://dns-service.tyo2.conoha.io/v1/"  <-- ユーザ毎に異なるのでconohaユーザーページから確認が必要
+
