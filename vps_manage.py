@@ -25,11 +25,6 @@ import time
 import pprint
 
 
-CONOHA_IDENTITY_ENDPOINT_BASE = "https://identity.tyo1.conoha.io/v2.0/"
-CONOHA_COMPUTE_ENDPOINT_BASE = "https://compute.tyo1.conoha.io/v2/"
-CONOHA_NETWORK_ENDPOINT_BASE = "https://networking.tyo1.conoha.io/v2.0/"
-
-
 def _parser():
     usage = 'python {} [-i ini file] [-c] [-f script_file] [-c images|security_groups|plans|] ' \
             '[-t name_tag] [-p admin_password] ' \
@@ -62,9 +57,8 @@ def read_config(filepath):
     return config_file["admin"], config_file["server"], config_file["rule"]
 
 
-def get_conoha_token(tid, user, passwd):
+def get_conoha_token(api, tid, user, passwd):
     """Function of getting a text of conoha token"""
-    _api = CONOHA_IDENTITY_ENDPOINT_BASE+"tokens"
     _header = {'Accept': 'application/json'}
     _body = {
         "auth": {
@@ -76,19 +70,18 @@ def get_conoha_token(tid, user, passwd):
         }}
 
     try:
-        _res = requests.post(_api, data=json.dumps(_body), headers=_header)
+        _res = requests.post(api, data=json.dumps(_body), headers=_header)
         return (json.loads(_res.text))["access"]["token"]["id"]
     except (ValueError, NameError, ConnectionError, RequestException, HTTPError) as e:
         print('Error: Could not get ConoHa token text.', e)
         sys.exit(1)
 
 
-def get_flavor_uuid(tid, token, flavorname):
+def get_flavor_uuid(api, token, flavorname):
     """Function of getting Conoha Server Plan ID from Server Plan Name"""
-    _api = CONOHA_COMPUTE_ENDPOINT_BASE + tid + '/flavors/detail'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
     try:
-        _res = requests.get(_api, headers=_header)
+        _res = requests.get(api, headers=_header)
         for server in json.loads(_res.content)['flavors']:
             if server['name'] == flavorname:
                 return server['id']
@@ -97,12 +90,11 @@ def get_flavor_uuid(tid, token, flavorname):
         sys.exit(1)
 
 
-def show_plan_list(tid, token):
+def show_plan_list(api, token):
     """Function of getting Conoha Server Plan list"""
-    _api = CONOHA_COMPUTE_ENDPOINT_BASE + tid + '/flavors/detail'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
     try:
-        _res = requests.get(_api, headers=_header)
+        _res = requests.get(api, headers=_header)
         for flavor in json.loads(_res.content)['flavors']:
             print("{name}:\tcpu:{vcpus}, ram:{ram}, disk:{disk}".format(
                 name=flavor["name"],
@@ -115,13 +107,12 @@ def show_plan_list(tid, token):
         sys.exit(1)
 
 
-def get_image_uuid(tid, token, imagename):
+def get_image_uuid(api, token, imagename):
     """Function of getting Conoha Server Image ID from Server Image Name"""
-    _api = CONOHA_COMPUTE_ENDPOINT_BASE + tid + '/images/detail'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
 
     try:
-        _res = requests.get(_api, headers=_header)
+        _res = requests.get(api, headers=_header)
         for server in json.loads(_res.content)['images']:
             if server['name'] == imagename:
                 return server['id']
@@ -130,13 +121,12 @@ def get_image_uuid(tid, token, imagename):
         sys.exit(1)
 
 
-def show_image_list(tid, token):
+def show_image_list(api, tid, token):
     """Function of getting Conoha Server Images List"""
-    _api = CONOHA_COMPUTE_ENDPOINT_BASE + tid + '/images/detail'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
 
     try:
-        _res = requests.get(_api, headers=_header)
+        _res = requests.get(api, headers=_header)
         for server in json.loads(_res.content)['images']:
             print('{name}:\t{id}'.format(name=server['name'], id=server['id']))
     except (ValueError, NameError, ConnectionError, RequestException, HTTPError) as e:
@@ -144,13 +134,12 @@ def show_image_list(tid, token):
         sys.exit(1)
 
 
-def show_security_group_list(tid, token):
+def show_security_group_list(api, token):
     """Function of getting Conoha Server Images List"""
-    _api = CONOHA_NETWORK_ENDPOINT_BASE + 'security-groups'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
 
     try:
-        _res = requests.get(_api, headers=_header)
+        _res = requests.get(api, headers=_header)
         for rule in json.loads(_res.content)['security_groups']:
             pprint.pprint(rule)
     except (ValueError, NameError, ConnectionError, RequestException, HTTPError) as e:
@@ -158,9 +147,8 @@ def show_security_group_list(tid, token):
         sys.exit(1)
 
 
-def create_server(tid, sgroup, stag, token, admin_pass, fid, iid, script):
+def create_server(api, sgroup, stag, token, admin_pass, fid, iid, script):
     """Function of creating New Server"""
-    _api = CONOHA_COMPUTE_ENDPOINT_BASE + tid + '/servers'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
     _body = {
         "server": {
@@ -175,7 +163,7 @@ def create_server(tid, sgroup, stag, token, admin_pass, fid, iid, script):
         _body["server"]["user_data"] = script
 
     try:
-        _res = requests.post(_api, data=json.dumps(_body), headers=_header)
+        _res = requests.post(api, data=json.dumps(_body), headers=_header)
         if _res.status_code != 202:
             print("ERROR: ", _res.text)
             sys.exit(1)
@@ -193,13 +181,12 @@ def create_server(tid, sgroup, stag, token, admin_pass, fid, iid, script):
         sys.exit(1)
 
 
-def delete_server(tid, token, server_id):
+def delete_server(api, token):
     """Function of delete Conoha Server"""
-    _api = CONOHA_COMPUTE_ENDPOINT_BASE + tid + '/servers/' + server_id
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
 
     try:
-        _res = requests.delete(_api, headers=_header)
+        _res = requests.delete(api, headers=_header)
         if _res.status_code != 204:
             print('Error: Could not delete ConoHa server.\n')
             sys.exit(1)
@@ -208,26 +195,24 @@ def delete_server(tid, token, server_id):
         sys.exit(1)
 
 
-def send_server_action(tid, token, server_id, body):
+def send_server_action(api, token, body):
     """Function of sending action to Conoha Server"""
-    _api = CONOHA_COMPUTE_ENDPOINT_BASE + tid + '/servers/' + server_id + "/action"
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
 
     try:
-        _res = requests.post(_api, data=json.dumps(body), headers=_header)
+        _res = requests.post(api, data=json.dumps(body), headers=_header)
         print(_res.text)
     except (ValueError, NameError, ConnectionError, RequestException, HTTPError) as e:
         print('Error: Could not send action to server.\n', e)
         sys.exit(1)
 
 
-def get_server_list(tid, token):
+def get_server_list(api, token):
     """Function of getting Conoha Server list"""
-    _api = CONOHA_COMPUTE_ENDPOINT_BASE + tid + '/servers/detail'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
     try:
         result = []
-        _res = requests.get(_api, headers=_header)
+        _res = requests.get(api, headers=_header)
         for server in json.loads(_res.content)['servers']:
             info = dict()
             info["name"] = server["metadata"]["instance_name_tag"]
@@ -245,9 +230,8 @@ def get_server_list(tid, token):
         sys.exit(1)
 
 
-def create_security_group(token, group_name):
+def create_security_group(api, token, group_name):
     """Function of creating security group"""
-    _api = CONOHA_NETWORK_ENDPOINT_BASE + 'security-groups'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
     _body = {
         "security_group": {
@@ -257,7 +241,7 @@ def create_security_group(token, group_name):
     }
 
     try:
-        _res = requests.post(_api, data=json.dumps(_body), headers=_header)
+        _res = requests.post(api, data=json.dumps(_body), headers=_header)
         if _res.status_code != 201:
             print("ERROR: ", _res.text)
             sys.exit(1)
@@ -273,9 +257,8 @@ def create_security_group(token, group_name):
         sys.exit(1)
 
 
-def add_firewall_rule(token, group_id, port):
+def add_firewall_rule(api, token, group_id, port):
     """Function of adding firewall rule in the security group"""
-    _api = CONOHA_NETWORK_ENDPOINT_BASE + 'security-group-rules'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
     _body = {
         "security_group_rule": {
@@ -289,7 +272,7 @@ def add_firewall_rule(token, group_id, port):
     }
 
     try:
-        _res = requests.post(_api, data=json.dumps(_body), headers=_header)
+        _res = requests.post(api, data=json.dumps(_body), headers=_header)
         if _res.status_code != 201:
             print("ERROR: ", _res.text)
             sys.exit(1)
@@ -316,70 +299,100 @@ def get_startup_base64(src_path):
         sys.exit(1)
 
 
+def get_api_list(api_conf, tenant, server_id):
+    api_list = {
+        'tokens': api_conf['CONOHA_IDENTITY_ENDPOINT_BASE']+'tokens',
+        'flavors_details': api_conf['CONOHA_COMPUTE_ENDPOINT_BASE'] + tenant + '/flavors/detail',
+        'image_details': api_conf['CONOHA_COMPUTE_ENDPOINT_BASE'] + tenant + '/images/detail',
+        'flavors_detail': api_conf['CONOHA_COMPUTE_ENDPOINT_BASE'] + tenant + '/flavors/detail',
+        'servers_detail': api_conf['CONOHA_COMPUTE_ENDPOINT_BASE'] + tenant + '/servers/detail',
+        'server_action': api_conf['CONOHA_COMPUTE_ENDPOINT_BASE'] + tenant + '/servers/' + server_id + '/action',
+        'server_delete': api_conf['CONOHA_COMPUTE_ENDPOINT_BASE'] + tenant + '/servers/' + server_id,
+        'images_detail': api_conf['CONOHA_COMPUTE_ENDPOINT_BASE'] + tenant + '/images/detail',
+        'server_create': api_conf['CONOHA_COMPUTE_ENDPOINT_BASE'] + tenant + '/servers',
+        'security-group-rules': api_conf['CONOHA_NETWORK_ENDPOINT_BASE'] + 'security-group-rules',
+        'security-groups': api_conf['CONOHA_NETWORK_ENDPOINT_BASE'] + 'security-groups'
+    }
+    return api_list
+
+
 if __name__ == '__main__':
     arg = _parser()
-    admin_conf, server_conf, rule_conf = read_config(arg.ini)
-    tenant = admin_conf["TENANT"]
-    token = get_conoha_token(tenant, admin_conf["APIUSER"], admin_conf["APIPASS"])
+    admin_conf, server_conf, rule_conf, api_conf = read_config(arg.ini)
+    tenant = admin_conf['TENANT']
+
+    server_id = ''
+    if arg.start is not None:
+        server_id = arg.start
+    elif arg.reboot is not None:
+        server_id = arg.reboot
+    elif arg.shutdown is not None:
+        server_id = arg.shutdown
+    elif arg.delete is not None:
+        server_id = arg.delete
+
+    api_list = get_api_list(api_conf, tenant, server_id)
+    token = get_conoha_token(api_list['tokens'], tenant, admin_conf['APIUSER'], admin_conf['APIPASS'])
 
     if arg.check is not None:
-        if arg.check == "images":
-            show_image_list(tenant, token)
-        elif arg.check == "security_groups":
-            show_security_group_list(tenant, token)
-        elif arg.check == "plans":
-            show_plan_list(tenant, token)
+        if arg.check == 'images':
+            show_image_list(api_list['images_detail'], token)
+        elif arg.check == 'security_groups':
+            show_security_group_list(api_list['security-groups'], token)
+        elif arg.check == 'plans':
+            show_plan_list(api_list['flavors_detail'], token)
         sys.exit(0)
 
     if arg.ip is not None:
-        for s in get_server_list(tenant, token):
-            if s["name"] == arg.ip:
-                print(s["ipv4"])
+        for s in get_server_list(api_list['servers_detail'], token):
+            if s['name'] == arg.ip:
+                print(s['ipv4'])
                 break
         sys.exit(0)
 
     if arg.list:
-        pprint.pprint(get_server_list(tenant, token))
+        pprint.pprint(get_server_list(api_list['servers_detail'], token))
         sys.exit(0)
 
     if arg.rule:
-        sec_id = create_security_group(token, rule_conf["SECURITYGROUP"])
-        for port in rule_conf["ALLOW_PORTS"].strip().split(","):
-            add_firewall_rule(token, sec_id, port)
-        show_security_group_list(tenant, token)
+        sec_id = create_security_group(api_list['security-groups'], token, rule_conf['SECURITYGROUP'])
+        for port in rule_conf['ALLOW_PORTS'].strip().split(','):
+            add_firewall_rule(api_list['security-group-rules'], token, sec_id, port)
+        show_security_group_list(api_list['security-groups'], token)
         sys.exit(0)
 
     if arg.start is not None:
-        send_server_action(tenant, token, arg.start, {"os-start": "null"})
+        send_server_action(api_list['server_action'], tenant, token, {'os-start': 'null'})
         sys.exit(0)
     elif arg.reboot is not None:
-        send_server_action(tenant, token, arg.reboot, {"reboot": {"type": "soft"}})
+        send_server_action(api_list['server_action'], tenant, token, {'reboot': {'type': 'soft'}})
         sys.exit(0)
     elif arg.shutdown is not None:
-        send_server_action(tenant, token, arg.shutdown, {"os-stop": "null"})
+        send_server_action(api_list['server_action'], tenant, token, {'os-stop': 'null'})
         sys.exit(0)
     elif arg.delete is not None:
-        delete_server(tenant, token, arg.delete)
+        delete_server(api_list['server_delete'], token)
         sys.exit(0)
 
     if not arg.create:
-        print("# do nothing. You may need to add --create option")
+        print('# do nothing. You may need to add --create option')
         sys.exit(0)
-    flavor_uuid = get_flavor_uuid(tenant, token, server_conf["FLAVORNAME"])
-    image_uuid = get_image_uuid(tenant, token, server_conf["IMAGENAME"])
+
+    flavor_uuid = get_flavor_uuid(api_list['flavors_details'], token, server_conf['FLAVORNAME'])
+    image_uuid = get_image_uuid(api_list['images_detail'], token, server_conf['IMAGENAME'])
     if arg.tag is not None:
         server_tag = arg.tag
     else:
-        server_tag = server_conf["STAG"]
+        server_tag = server_conf['STAG']
     if arg.password is not None:
         server_pass = arg.password
     else:
-        server_pass = server_conf["ROOTPASS"]
+        server_pass = server_conf['ROOTPASS']
     if arg.script is None:
-        startup_script = ""
+        startup_script = ''
     else:
         startup_script = get_startup_base64(arg.script)
-    print("** please wait for a while")
-    create_server(tenant, server_conf["SECGRP"], server_tag, token,
+    print('** please wait for a while')
+    create_server(api_list['server_create'], server_conf['SECGRP'], server_tag, token,
                   server_pass, flavor_uuid, image_uuid, startup_script)
 
