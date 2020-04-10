@@ -145,8 +145,8 @@ def show_image_list(base_url, tid, token):
         sys.exit(1)
 
 
-def show_security_group_list(base_url,  token):
-    """Function of getting Conoha Server Images List"""
+def show_security_group_list(base_url, token):
+    """Function of getting Conoha security group List"""
     _api = base_url + 'security-groups'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
 
@@ -434,7 +434,7 @@ if __name__ == '__main__':
         if arg.check == "images":
             show_image_list(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token)
         elif arg.check == "security_groups":
-            show_security_group_list(tenant, token)
+            show_security_group_list(api_conf["CONOHA_NETWORK_ENDPOINT_BASE"], token)
         elif arg.check == "plans":
             show_plan_list(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token)
         sys.exit(0)
@@ -456,7 +456,7 @@ if __name__ == '__main__':
         sec_id = create_security_group(api_conf["CONOHA_NETWORK_ENDPOINT_BASE"], token, rule_conf["SECURITYGROUP"])
         for port in rule_conf["ALLOW_PORTS"].strip().split(","):
             add_firewall_rule(api_conf["CONOHA_NETWORK_ENDPOINT_BASE"], token, sec_id, port)
-        show_security_group_list(api_conf["CONOHA_NETWORK_ENDPOINT_BASE"], tenant, token)
+        show_security_group_list(api_conf["CONOHA_NETWORK_ENDPOINT_BASE"], token)
         sys.exit(0)
     elif arg.security_group_del is not None:
         delete_security_group(api_conf["CONOHA_NETWORK_ENDPOINT_BASE"], token, arg.security_group_del)
