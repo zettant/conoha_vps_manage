@@ -29,7 +29,8 @@ def _parser():
     usage = 'python {} [-i ini file] [-c] [-f script_file] [-c images|security_groups|plans|] ' \
             '[-t name_tag] [-p admin_password] [--ip name_tag]' \
             '[--start name_tag] [--reboot name_tag] [--shutdown name_tag] [--delete name_tag] ' \
-            '[--rule] [--dns domain] [--dns-add domain] [--dns-del domain] [--hostname name] [--address ip_addr] [--help]'.format(__file__)
+            '[--create-rule] [--dns domain] [--dns-add domain] ' \
+            '[--dns-del domain] [--hostname name] [--address ip_addr] [--help]'.format(__file__)
     argparser = ArgumentParser(usage=usage)
     argparser.add_argument('-i', '--ini', type=str, default="./config.ini", help='config file')
     argparser.add_argument('--create', action='store_true', help='create a new server')
@@ -300,6 +301,12 @@ def add_firewall_rule(base_url, token, group_id, port):
     """Function of adding firewall rule in the security group"""
     _api = base_url + 'security-group-rules'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
+
+    protocol = "tcp"
+    if ":" in port:
+        items = port.split(":")
+        port = items[0]
+        protocol = items[1]
     _body = {
         "security_group_rule": {
             "direction": "ingress",
@@ -307,7 +314,7 @@ def add_firewall_rule(base_url, token, group_id, port):
             "security_group_id": group_id,
             "port_range_min": port,
             "port_range_max": port,
-            "protocol": "tcp"
+            "protocol": protocol
         }
     }
 
