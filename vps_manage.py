@@ -25,12 +25,6 @@ import time
 import pprint
 
 
-CONOHA_IDENTITY_ENDPOINT_BASE = "https://identity.tyo1.conoha.io/v2.0/"
-CONOHA_COMPUTE_ENDPOINT_BASE = "https://compute.tyo1.conoha.io/v2/"
-CONOHA_NETWORK_ENDPOINT_BASE = "https://networking.tyo1.conoha.io/v2.0/"
-CONOHA_DNS_ENDPOINT_BASE = "https://dns-service.tyo1.conoha.io/v1/"
-
-
 def _parser():
     usage = 'python {} [-i ini file] [-c] [-f script_file] [-c images|security_groups|plans|] ' \
             '[-t name_tag] [-p admin_password] [--ip name_tag]' \
@@ -66,12 +60,12 @@ def read_config(filepath):
         sys.exit(1)
     config_file = configparser.ConfigParser()
     config_file.read(filepath)
-    return config_file["admin"], config_file["server"], config_file["rule"]
+    return config_file["admin"], config_file["server"], config_file["rule"], config_file["api"]
 
 
-def get_conoha_token(tid, user, passwd):
+def get_conoha_token(base_url, tid, user, passwd):
     """Function of getting a text of conoha token"""
-    _api = CONOHA_IDENTITY_ENDPOINT_BASE+"tokens"
+    _api = base_url +"tokens"
     _header = {'Accept': 'application/json'}
     _body = {
         "auth": {
@@ -90,9 +84,9 @@ def get_conoha_token(tid, user, passwd):
         sys.exit(1)
 
 
-def get_flavor_uuid(tid, token, flavorname):
+def get_flavor_uuid(base_url, tid, token, flavorname):
     """Function of getting Conoha Server Plan ID from Server Plan Name"""
-    _api = CONOHA_COMPUTE_ENDPOINT_BASE + tid + '/flavors/detail'
+    _api = base_url + tid + '/flavors/detail'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
     try:
         _res = requests.get(_api, headers=_header)
@@ -104,9 +98,9 @@ def get_flavor_uuid(tid, token, flavorname):
         sys.exit(1)
 
 
-def show_plan_list(tid, token):
+def show_plan_list(base_url, tid, token):
     """Function of getting Conoha Server Plan list"""
-    _api = CONOHA_COMPUTE_ENDPOINT_BASE + tid + '/flavors/detail'
+    _api = base_url + tid + '/flavors/detail'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
     try:
         _res = requests.get(_api, headers=_header)
@@ -122,9 +116,9 @@ def show_plan_list(tid, token):
         sys.exit(1)
 
 
-def get_image_uuid(tid, token, imagename):
+def get_image_uuid(base_url, tid, token, imagename):
     """Function of getting Conoha Server Image ID from Server Image Name"""
-    _api = CONOHA_COMPUTE_ENDPOINT_BASE + tid + '/images/detail'
+    _api = base_url + tid + '/images/detail'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
 
     try:
@@ -137,9 +131,9 @@ def get_image_uuid(tid, token, imagename):
         sys.exit(1)
 
 
-def show_image_list(tid, token):
+def show_image_list(base_url, tid, token):
     """Function of getting Conoha Server Images List"""
-    _api = CONOHA_COMPUTE_ENDPOINT_BASE + tid + '/images/detail'
+    _api = base_url + tid + '/images/detail'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
 
     try:
@@ -151,9 +145,9 @@ def show_image_list(tid, token):
         sys.exit(1)
 
 
-def show_security_group_list(tid, token):
+def show_security_group_list(base_url,  token):
     """Function of getting Conoha Server Images List"""
-    _api = CONOHA_NETWORK_ENDPOINT_BASE + 'security-groups'
+    _api = base_url + 'security-groups'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
 
     try:
@@ -165,9 +159,9 @@ def show_security_group_list(tid, token):
         sys.exit(1)
 
 
-def create_server(tid, sgroup, stag, token, admin_pass, fid, iid, script):
+def create_server(base_url, tid, sgroup, stag, token, admin_pass, fid, iid, script):
     """Function of creating New Server"""
-    _api = CONOHA_COMPUTE_ENDPOINT_BASE + tid + '/servers'
+    _api = base_url + tid + '/servers'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
     _body = {
         "server": {
@@ -200,9 +194,9 @@ def create_server(tid, sgroup, stag, token, admin_pass, fid, iid, script):
         sys.exit(1)
 
 
-def delete_server(tid, token, server_id):
+def delete_server(base_url, tid, token, server_id):
     """Function of delete Conoha Server"""
-    _api = CONOHA_COMPUTE_ENDPOINT_BASE + tid + '/servers/' + server_id
+    _api = base_url + tid + '/servers/' + server_id
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
 
     try:
@@ -215,9 +209,9 @@ def delete_server(tid, token, server_id):
         sys.exit(1)
 
 
-def send_server_action(tid, token, server_id, body):
+def send_server_action(base_url, tid, token, server_id, body):
     """Function of sending action to Conoha Server"""
-    _api = CONOHA_COMPUTE_ENDPOINT_BASE + tid + '/servers/' + server_id + "/action"
+    _api = base_url + tid + '/servers/' + server_id + "/action"
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
 
     try:
@@ -228,9 +222,9 @@ def send_server_action(tid, token, server_id, body):
         sys.exit(1)
 
 
-def get_server_list(tid, token):
+def get_server_list(base_url, tid, token):
     """Function of getting ConoHa Server list"""
-    _api = CONOHA_COMPUTE_ENDPOINT_BASE + tid + '/servers/detail'
+    _api = base_url + tid + '/servers/detail'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
     try:
         result = {}
@@ -252,9 +246,9 @@ def get_server_list(tid, token):
         sys.exit(1)
 
 
-def create_security_group(token, group_name):
+def create_security_group(base_url, token, group_name):
     """Function of creating security group"""
-    _api = CONOHA_NETWORK_ENDPOINT_BASE + 'security-groups'
+    _api = base_url + 'security-groups'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
     _body = {
         "security_group": {
@@ -280,9 +274,9 @@ def create_security_group(token, group_name):
         sys.exit(1)
 
 
-def delete_security_group(token, group_id):
+def delete_security_group(base_url, token, group_id):
     """Function of deleting security group"""
-    _api = CONOHA_NETWORK_ENDPOINT_BASE + 'security-groups/' + group_id
+    _api = base_url + 'security-groups/' + group_id
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
 
     try:
@@ -302,9 +296,9 @@ def delete_security_group(token, group_id):
         sys.exit(1)
 
 
-def add_firewall_rule(token, group_id, port):
+def add_firewall_rule(base_url, token, group_id, port):
     """Function of adding firewall rule in the security group"""
-    _api = CONOHA_NETWORK_ENDPOINT_BASE + 'security-group-rules'
+    _api = base_url + 'security-group-rules'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
     _body = {
         "security_group_rule": {
@@ -333,9 +327,9 @@ def add_firewall_rule(token, group_id, port):
         sys.exit(1)
 
 
-def get_domain_list(token):
+def get_domain_list(base_url, token):
     """Function of getting Conoha Domain list"""
-    _api = CONOHA_DNS_ENDPOINT_BASE + 'domains'
+    _api = base_url + 'domains'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
     try:
         result = {}
@@ -348,9 +342,9 @@ def get_domain_list(token):
         sys.exit(1)
 
 
-def get_dns_records(token, domain_id):
+def get_dns_records(base_url, token, domain_id):
     """Function of getting Conoha record list"""
-    _api = CONOHA_DNS_ENDPOINT_BASE + 'domains/' + domain_id + '/records'
+    _api = base_url + 'domains/' + domain_id + '/records'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
     try:
         result = {}
@@ -367,9 +361,9 @@ def get_dns_records(token, domain_id):
         sys.exit(1)
 
 
-def add_dns_record(token, domain_id, name, ip_address, rec_type="A"):
+def add_dns_record(base_url, token, domain_id, name, ip_address, rec_type="A"):
     """Function of adding A record of DNS"""
-    _api = CONOHA_DNS_ENDPOINT_BASE + 'domains/' + domain_id + '/records'
+    _api = base_url + 'domains/' + domain_id + '/records'
     _header = {'Content-Type': 'application/json', 'Accept': 'application/json', 'X-Auth-Token': token}
     _body = {
         "name": name,
@@ -392,9 +386,9 @@ def add_dns_record(token, domain_id, name, ip_address, rec_type="A"):
         sys.exit(1)
 
 
-def del_dns_record(token, domain_id, record_id):
+def del_dns_record(base_url, token, domain_id, record_id):
     """Function of deleting A record of DNS"""
-    _api = CONOHA_DNS_ENDPOINT_BASE + 'domains/' + domain_id + '/records/' + record_id
+    _api = base_url + 'domains/' + domain_id + '/records/' + record_id
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
     try:
         _res = requests.delete(_api, headers=_header)
@@ -424,7 +418,7 @@ def get_startup_base64(src_path):
 
 
 def get_ip(ip_addr):
-    for s in get_server_list(tenant, token):
+    for s in get_server_list(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token):
         if s["name"] == ip_addr:
             return s["ipv4"]
     return None
@@ -432,21 +426,21 @@ def get_ip(ip_addr):
 
 if __name__ == '__main__':
     arg = _parser()
-    admin_conf, server_conf, rule_conf = read_config(arg.ini)
+    admin_conf, server_conf, rule_conf, api_conf = read_config(arg.ini)
     tenant = admin_conf["TENANT"]
-    token = get_conoha_token(tenant, admin_conf["APIUSER"], admin_conf["APIPASS"])
+    token = get_conoha_token(api_conf["CONOHA_IDENTITY_ENDPOINT_BASE"], tenant, admin_conf["APIUSER"], admin_conf["APIPASS"])
 
     if arg.check is not None:
         if arg.check == "images":
-            show_image_list(tenant, token)
+            show_image_list(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token)
         elif arg.check == "security_groups":
             show_security_group_list(tenant, token)
         elif arg.check == "plans":
-            show_plan_list(tenant, token)
+            show_plan_list(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token)
         sys.exit(0)
 
     if arg.ip is not None:
-        res = get_server_list(tenant, token).get(arg.ip, None)
+        res = get_server_list(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token).get(arg.ip, None)
         if res is not None:
             print(res["ipv4"])
         else:
@@ -455,73 +449,73 @@ if __name__ == '__main__':
         sys.exit(0)
 
     if arg.list:
-        pprint.pprint(get_server_list(tenant, token))
+        pprint.pprint(get_server_list(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token))
         sys.exit(0)
 
     if arg.create_rule:
-        sec_id = create_security_group(token, rule_conf["SECURITYGROUP"])
+        sec_id = create_security_group(api_conf["CONOHA_NETWORK_ENDPOINT_BASE"], token, rule_conf["SECURITYGROUP"])
         for port in rule_conf["ALLOW_PORTS"].strip().split(","):
-            add_firewall_rule(token, sec_id, port)
-        show_security_group_list(tenant, token)
+            add_firewall_rule(api_conf["CONOHA_NETWORK_ENDPOINT_BASE"], token, sec_id, port)
+        show_security_group_list(api_conf["CONOHA_NETWORK_ENDPOINT_BASE"], tenant, token)
         sys.exit(0)
     elif arg.security_group_del is not None:
-        delete_security_group(token, arg.security_group_del)
+        delete_security_group(api_conf["CONOHA_NETWORK_ENDPOINT_BASE"], token, arg.security_group_del)
         sys.exit(0)
 
     if arg.dns is not None:
-        domain_id = get_domain_list(token).get(arg.dns+".", None)
+        domain_id = get_domain_list(api_conf["CONOHA_DNS_ENDPOINT_BASE"], token).get(arg.dns+".", None)
         if domain_id is None:
             print("No such domain")
             sys.exit(1)
-        pprint.pprint(get_dns_records(token, domain_id))
+        pprint.pprint(get_dns_records(api_conf["CONOHA_DNS_ENDPOINT_BASE"], token, domain_id))
         sys.exit(0)
     elif arg.dns_add is not None:
-        domain_id = get_domain_list(token).get(arg.dns_add+".", None)
+        domain_id = get_domain_list(api_conf["CONOHA_DNS_ENDPOINT_BASE"], token).get(arg.dns_add+".", None)
         if domain_id is None:
             print("No such domain")
             sys.exit(1)
-        add_dns_record(token, domain_id, arg.hostname+"."+arg.dns_add+".", arg.address)
-        pprint.pprint(get_dns_records(token, domain_id))
+        add_dns_record(api_conf["CONOHA_DNS_ENDPOINT_BASE"], token, domain_id, arg.hostname+"."+arg.dns_add+".", arg.address)
+        pprint.pprint(get_dns_records(api_conf["CONOHA_DNS_ENDPOINT_BASE"], token, domain_id))
         sys.exit(0)
     elif arg.dns_del is not None:
-        domain_id = get_domain_list(token).get(arg.dns_del+".", None)
+        domain_id = get_domain_list(api_conf["CONOHA_DNS_ENDPOINT_BASE"], token).get(arg.dns_del+".", None)
         if domain_id is None:
             print("No such domain")
             sys.exit(1)
-        for rec_id, rec in get_dns_records(token, domain_id).items():
+        for rec_id, rec in get_dns_records(api_conf["CONOHA_DNS_ENDPOINT_BASE"], token, domain_id).items():
             if rec["name"] != arg.hostname+"."+arg.dns_del+".":
                 continue
-            del_dns_record(token, domain_id, rec_id)
+            del_dns_record(api_conf["CONOHA_DNS_ENDPOINT_BASE"], token, domain_id, rec_id)
             break
-        pprint.pprint(get_dns_records(token, domain_id))
+        pprint.pprint(get_dns_records(api_conf["CONOHA_DNS_ENDPOINT_BASE"], token, domain_id))
         sys.exit(0)
 
     if arg.start is not None:
-        svr = get_server_list(tenant, token).get(arg.start, None)
+        svr = get_server_list(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token).get(arg.start, None)
         if "id" in svr:
-            send_server_action(tenant, token, svr["id"], {"os-start": "null"})
+            send_server_action(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token, svr["id"], {"os-start": "null"})
         sys.exit(0)
     elif arg.reboot is not None:
-        svr = get_server_list(tenant, token).get(arg.reboot, None)
+        svr = get_server_list(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token).get(arg.reboot, None)
         if "id" in svr:
-            send_server_action(tenant, token, svr["id"], {"reboot": {"type": "soft"}})
+            send_server_action(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token, svr["id"], {"reboot": {"type": "soft"}})
         sys.exit(0)
     elif arg.shutdown is not None:
-        svr = get_server_list(tenant, token).get(arg.shutdown, None)
+        svr = get_server_list(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token).get(arg.shutdown, None)
         if "id" in svr:
-            send_server_action(tenant, token, svr["id"], {"os-stop": "null"})
+            send_server_action(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token, svr["id"], {"os-stop": "null"})
         sys.exit(0)
     elif arg.delete is not None:
-        svr = get_server_list(tenant, token).get(arg.delete, None)
+        svr = get_server_list(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token).get(arg.delete, None)
         if "id" in svr:
-            delete_server(tenant, token, svr["id"])
+            delete_server(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token, svr["id"])
         sys.exit(0)
 
     if not arg.create:
         print("# do nothing. You may need to add --create option")
         sys.exit(0)
-    flavor_uuid = get_flavor_uuid(tenant, token, server_conf["FLAVORNAME"])
-    image_uuid = get_image_uuid(tenant, token, server_conf["IMAGENAME"])
+    flavor_uuid = get_flavor_uuid(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token, server_conf["FLAVORNAME"])
+    image_uuid = get_image_uuid(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token, server_conf["IMAGENAME"])
     if arg.tag is not None:
         server_tag = arg.tag
     else:
@@ -535,6 +529,5 @@ if __name__ == '__main__':
     else:
         startup_script = get_startup_base64(arg.script)
     print("** please wait for a while")
-    create_server(tenant, server_conf["SECGRP"], server_tag, token,
+    create_server(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, server_conf["SECGRP"], server_tag, token,
                   server_pass, flavor_uuid, image_uuid, startup_script)
-

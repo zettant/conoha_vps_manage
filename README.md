@@ -3,8 +3,16 @@ ConoHa VPS制御ツール
 ConoHa VPSサービスのサーバ作成や停止、削除のためのツール
 
 ## 準備
-ConoHaにログインし、コンソールでAPIユーザを作成する。そのコンソール上の、**テナントID**と**ユーザ名**および設定したパスワードを、**config.ini**に記載する。
+* ConoHaにログインし、コンソールでAPIユーザを作成する。そのコンソール上の、**テナントID**と**ユーザ名**および設定したパスワードを、**config.ini**に記載する。
+* APIユーザを作成後、エンドポイントからIdentity Service、Compute Service、Network Service, DNS Serviceの値を取得し、バージョン名までのパスを**config.ini**に記載する。
 
+```
+[api]
+CONOHA_IDENTITY_ENDPOINT_BASE = https://identity.tyo1.conoha.io/v2.0/
+CONOHA_COMPUTE_ENDPOINT_BASE = https://compute.tyo1.conoha.io/v2/
+CONOHA_NETWORK_ENDPOINT_BASE = https://networking.tyo1.conoha.io/v2.0/
+CONOHA_DNS_ENDPOINT_BASE = https://dns-service.tyo1.conoha.io/v1/
+```
 ## How to use
 
 ### 準備
@@ -38,7 +46,7 @@ python vps_manage.py -c security_groups
 ```
 
 ### VPSのセキュリティグループおよびファイアウォールのルール作成
-* まずは、config.intに\[rule\]を記載しておく
+* まずは、config.iniに\[rule\]を記載しておく
 ```bash
 python vps_manage.py --rule
 ```
