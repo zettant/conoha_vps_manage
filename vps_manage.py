@@ -27,9 +27,10 @@ import pprint
 
 def _parser():
     usage = 'python {} [-i ini file] [-c] [-f script_file] [-c images|security_groups|plans|] ' \
-            '[-t name_tag] [-p admin_password] [--ip name_tag]' \
+            '[-t name_tag] [-p admin_password] [--ip name_tag] ' \
+            '[--security-group-del group_name] [--create-rule] ' \
             '[--start name_tag] [--reboot name_tag] [--shutdown name_tag] [--delete name_tag] ' \
-            '[--create-rule] [--dns domain] [--dns-add domain] ' \
+            '[--dns domain] [--dns-add domain] ' \
             '[--dns-del domain] [--hostname name] [--address ip_addr] [--help]'.format(__file__)
     argparser = ArgumentParser(usage=usage)
     argparser.add_argument('-i', '--ini', type=str, default="./config.ini", help='config file')
@@ -146,15 +147,17 @@ def show_image_list(base_url, tid, token):
         sys.exit(1)
 
 
-def show_security_group_list(base_url, token):
+def get_security_group_list(base_url, token):
     """Function of getting Conoha security group List"""
     _api = base_url + 'security-groups'
     _header = {'Accept': 'application/json', 'X-Auth-Token': token}
 
     try:
+        result = dict()
         _res = requests.get(_api, headers=_header)
-        for rule in json.loads(_res.content)['security_groups']:
-            pprint.pprint(rule)
+        for group in json.loads(_res.content)['security_groups']:
+            result[group["name"]] = group
+        return result
     except (ValueError, NameError, ConnectionError, RequestException, HTTPError) as e:
         print('Error: Could not get ConoHa security group settings\n', e)
         sys.exit(1)
@@ -334,6 +337,41 @@ def add_firewall_rule(base_url, token, group_id, port):
         sys.exit(1)
 
 
+def add_firewall_rule_allow_all(base_url, token, group_id):
+    """Function of adding firewall rule (allow-all) in the security group"""
+    _api = base_url + 'security-group-rules'
+    _header = {'Accept': 'application/json', 'X-Auth-Token': token}
+    _body = {
+        "security_group_rule": {
+            "direction": "ingress",
+            "ethertype": "IPv4",
+            "security_group_id": group_id,
+            "protocol": None
+        }
+    }
+
+    try:
+        _res = requests.post(_api, data=json.dumps(_body), headers=_header)
+        if _res.status_code != 201:
+            print("ERROR: ", _res.text)
+            sys.exit(1)
+
+        _body["security_group_rule"]["ethertype"] = "IPv6"
+        _res = requests.post(_api, data=json.dumps(_body), headers=_header)
+        if _res.status_code != 201:
+            print("ERROR: ", _res.text)
+            sys.exit(1)
+
+    except (ValueError, NameError, ConnectionError, RequestException, HTTPError) as e:
+        print('Error: Could not create server.', e)
+        sys.exit(1)
+    except KeyError:
+        print('Error Code   : {code}\nError Message: {res}'.format(
+            code=_res.text['badRequest']['message'],
+            res=_res.text['badRequest']['code']))
+        sys.exit(1)
+
+
 def get_domain_list(base_url, token):
     """Function of getting Conoha Domain list"""
     _api = base_url + 'domains'
@@ -441,7 +479,7 @@ if __name__ == '__main__':
         if arg.check == "images":
             show_image_list(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token)
         elif arg.check == "security_groups":
-            show_security_group_list(api_conf["CONOHA_NETWORK_ENDPOINT_BASE"], token)
+            pprint.pprint(get_security_group_list(api_conf["CONOHA_NETWORK_ENDPOINT_BASE"], token))
         elif arg.check == "plans":
             show_plan_list(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token)
         sys.exit(0)
@@ -461,12 +499,19 @@ if __name__ == '__main__':
 
     if arg.create_rule:
         sec_id = create_security_group(api_conf["CONOHA_NETWORK_ENDPOINT_BASE"], token, rule_conf["SECURITYGROUP"])
-        for port in rule_conf["ALLOW_PORTS"].strip().split(","):
-            add_firewall_rule(api_conf["CONOHA_NETWORK_ENDPOINT_BASE"], token, sec_id, port)
-        show_security_group_list(api_conf["CONOHA_NETWORK_ENDPOINT_BASE"], token)
+        if rule_conf["ALLOW_PORTS"] == "ALL":
+            add_firewall_rule_allow_all(api_conf["CONOHA_NETWORK_ENDPOINT_BASE"], token, sec_id)
+        else:
+            for port in rule_conf["ALLOW_PORTS"].strip().split(","):
+                add_firewall_rule(api_conf["CONOHA_NETWORK_ENDPOINT_BASE"], token, sec_id, port)
+        pprint.pprint(get_security_group_list(api_conf["CONOHA_NETWORK_ENDPOINT_BASE"], token))
         sys.exit(0)
     elif arg.security_group_del is not None:
-        delete_security_group(api_conf["CONOHA_NETWORK_ENDPOINT_BASE"], token, arg.security_group_del)
+        groups = get_security_group_list(api_conf["CONOHA_NETWORK_ENDPOINT_BASE"], token)
+        if arg.security_group_del not in groups:
+            print("* no such group")
+            sys.exit(1)
+        delete_security_group(api_conf["CONOHA_NETWORK_ENDPOINT_BASE"], token, groups[arg.security_group_del]["id"])
         sys.exit(0)
 
     if arg.dns is not None:

@@ -12,8 +12,11 @@ FLAVORNAME = {VPSプラン名} ex. g-c2m1d100
 SCRIPTPATH = {スタートアップスクリプトのパス} ./disable_root_ssh.sh
 
 [rule]
-SECURITYGROUP = allow-ssh-web   <--- サンプル
-ALLOW_PORTS = 22,80,443
+#SECURITYGROUP = allow-ssh-web   <--- サンプル
+#ALLOW_PORTS = 22,80,443
+
+SECURITYGROUP = allpass   <--- サンプル
+ALLOW_PORTS = ALL  <--- すべて通す
 
 [api]
 CONOHA_IDENTITY_ENDPOINT_BASE = https://identity.tyo1.conoha.io/v2.0/ <-- ユーザ毎に異なるのでconohaユーザーページから確認が必要
