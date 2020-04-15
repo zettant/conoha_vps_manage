@@ -27,7 +27,7 @@ import pprint
 
 def _parser():
     usage = 'python {} [-i ini file] [-c] [-f script_file] [-c images|security_groups|plans|] ' \
-            '[-t name_tag] [-p admin_password] [--ip name_tag] ' \
+            '[-t name_tag] [-p admin_password] [--ip name_tag] [--plan plan(512m|1g|2g|4g)] ' \
             '[--security-group-del group_name] [--create-rule] ' \
             '[--start name_tag] [--reboot name_tag] [--shutdown name_tag] [--delete name_tag] ' \
             '[--dns domain] [--dns-add domain] ' \
@@ -46,6 +46,7 @@ def _parser():
     argparser.add_argument('--address', type=str, help='IP address of the A record')
     argparser.add_argument('--hostname', type=str, help='hostname of the A record')
     argparser.add_argument('--ip', type=str, help='get IP address of the server')
+    argparser.add_argument('--plan', type=str, help='plan for the host (512m, 1g, 2g, 4g)')
     argparser.add_argument('--start', type=str, help='start server instance')
     argparser.add_argument('--reboot', type=str, help='reboot server instance')
     argparser.add_argument('--shutdown', type=str, help='shutdown server instance')
@@ -566,7 +567,8 @@ if __name__ == '__main__':
     if not arg.create:
         print("# do nothing. You may need to add --create option")
         sys.exit(0)
-    flavor_uuid = get_flavor_uuid(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token, server_conf["FLAVORNAME"])
+    plan = {"512m": "g-c1m512d30", "1g": "g-c2m1d100", "2g": "g-c3m2d100", "4g": "g-c4m4d100"}.get(arg.plan, server_conf["FLAVORNAME"])
+    flavor_uuid = get_flavor_uuid(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token, plan)
     image_uuid = get_image_uuid(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token, server_conf["IMAGENAME"])
     if arg.tag is not None:
         server_tag = arg.tag
