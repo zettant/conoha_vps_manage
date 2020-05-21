@@ -28,6 +28,7 @@ import pprint
 def _parser():
     usage = 'python {} [-i ini file] [-c] [-f script_file] [-c images|security_groups|plans|] ' \
             '[-t name_tag] [-p admin_password] [--ip name_tag] [--plan plan(512m|1g|2g|4g)] ' \
+            '[--cheange_grade plan(512m|1g|2g|4g)]' \
             '[--security-group-del group_name] [--create-rule] ' \
             '[--start name_tag] [--reboot name_tag] [--shutdown name_tag] [--delete name_tag] ' \
             '[--dns domain] [--dns-add domain] ' \
@@ -39,6 +40,7 @@ def _parser():
     argparser.add_argument('-t', '--tag', type=str, help='name tag of the server to create')
     argparser.add_argument('-p', '--password', type=str, help='admin password of the server to create')
     argparser.add_argument('-c', '--check', type=str, help='check conoha parameter list')
+    argparser.add_argument('--change-grade',  type=str, help='change grade')
     argparser.add_argument('-l', '--list', action='store_true', help='list up conoha servers')
     argparser.add_argument('--dns', type=str, help='dns records of the domain')
     argparser.add_argument('--dns-add', type=str, help='add A record in the DNS')
@@ -161,6 +163,53 @@ def get_security_group_list(base_url, token):
         return result
     except (ValueError, NameError, ConnectionError, RequestException, HTTPError) as e:
         print('Error: Could not get ConoHa security group settings\n', e)
+        sys.exit(1)
+
+
+def change_server_plan(base_url, tid, server_id, fid, token):
+    """Function of change plan Conoha Server"""
+    print("start server plan")
+    _api = base_url + tid + '/servers/' + server_id + "/action"
+    _header = {'Accept': 'application/json', 'X-Auth-Token': token}
+    _body = {
+        "resize": {
+            "flavorRef": fid,
+        }
+    }
+
+    try:
+        result = dict()
+        _res = requests.post(_api, data=json.dumps(_body),  headers=_header)
+        if _res.status_code != 202:
+            print("ERROR REQUEST: ", _res.text)
+            sys.exit(1)
+
+        return result
+    except (ValueError, NameError, ConnectionError, RequestException, HTTPError) as e:
+        print('Error: Could not ConoHa change plan \n', e)
+        sys.exit(1)
+
+
+def verify_resize(base_url, tid, server_id, fid, token):
+    """Function of change plan Conoha Server"""
+    print("start verify resize")
+    _api = base_url + tid + '/servers/' + server_id + "/action"
+    _header = {'Accept': 'application/json', 'X-Auth-Token': token}
+
+    _body = {
+        "confirmResize": None
+    }
+
+    try:
+        result = dict()
+        _res = requests.post(_api, data=json.dumps(_body), headers=_header)
+        if _res.status_code != 204:
+            print("ERROR CONFIRM: ", _res.text)
+            sys.exit(1)
+
+        return result
+    except (ValueError, NameError, ConnectionError, RequestException, HTTPError) as e:
+        print('Error: Could not ConoHa change plan \n', e)
         sys.exit(1)
 
 
@@ -562,6 +611,38 @@ if __name__ == '__main__':
         svr = get_server_list(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token).get(arg.delete, None)
         if "id" in svr:
             delete_server(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token, svr["id"])
+        sys.exit(0)
+
+    if arg.change_grade is not None:
+        print("# start change plan")
+        plan = {"1g": "g-c2m1d100", "2g": "g-c3m2d100", "4g": "g-c4m4d100"}.get(arg.change_grade)
+        flavor_uuid = get_flavor_uuid(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token, plan)
+        if arg.tag is not None:
+            server_tag = arg.tag
+        else:
+            server_tag = server_conf["STAG"]
+        server_info = get_server_list(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token).get(server_tag, "")
+
+        server_id = server_info.get("id", "")
+        server_state = server_info.get("id", "")
+
+        if server_info["status"] != "VERIFY_RESIZE" and server_info["status"] != "RESIZE":
+            change_server_plan(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, server_id, flavor_uuid, token)
+
+        counter = 0
+        while 1:
+            server_info = get_server_list(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, token).get(server_tag, "")
+            print(server_info)
+            status = server_info.get("status", "")
+            if status == "VERIFY_RESIZE":
+                break
+            time.sleep(5)
+            counter = counter + 1
+            if counter > 50:
+                print("Error verify resize")
+                sys.exit(0)
+
+        verify_resize(api_conf["CONOHA_COMPUTE_ENDPOINT_BASE"], tenant, server_id, flavor_uuid, token)
         sys.exit(0)
 
     if not arg.create:

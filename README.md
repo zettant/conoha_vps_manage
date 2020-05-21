@@ -48,7 +48,7 @@ python vps_manage.py -c security_groups
 ### VPSのセキュリティグループおよびファイアウォールのルール作成
 * まずは、config.iniに\[rule\]を記載しておく
 ```bash
-python vps_manage.py --rule
+python vps_manage.py --create-rule
 ```
 
 ### VPSサーバの起動、停止、再起動
@@ -76,4 +76,17 @@ python vps_manage.py --create -s <startup_scriptパス> -t <タグ名> -p <パ�
 ### VPSサーバの削除
 ```bash
 python vps_manage.py --delete <server_id>
+```
+
+
+### VPSサーバのプラン変更
+
+* config.iniにSTAG（サーバタグ名）を指定する場合
+```bash
+python vps_manage.py --change-grade <プラン名（1g, 2g 4g) >
+```
+
+* サーバタグ名を引数指定する場合
+```bash
+python vps_manage.py --change-grade <プラン名（1g, 2g 4g) > -t <タグ名>
 ```
