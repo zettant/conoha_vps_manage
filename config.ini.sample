@@ -20,6 +20,7 @@ ALLOW_PORTS = ALL  <--- すべて通す
 
 [api]
 CONOHA_IDENTITY_ENDPOINT_BASE = https://identity.tyo1.conoha.io/v2.0/ <-- ユーザ毎に異なるのでconohaユーザーページから確認が必要
+CONOHA_ACCOUNT_ENDPOINT_BASE = https://account.tyo1.conoha.io/v1/  <-- ユーザ毎に異なるのでconohaユーザーページから確認が必要
 CONOHA_COMPUTE_ENDPOINT_BASE = https://compute.tyo1.conoha.io/v2/ <-- ユーザ毎に異なるのでconohaユーザーページから確認が必要
 CONOHA_NETWORK_ENDPOINT_BASE = https://networking.tyo1.conoha.io/v2.0/ <-- ユーザ毎に異なるのでconohaユーザーページから確認が必要
 CONOHA_DNS_ENDPOINT_BASE = https://dns-service.tyo1.conoha.io/v1/  <-- ユーザ毎に異なるのでconohaユーザーページから確認が必要

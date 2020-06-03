@@ -32,7 +32,8 @@ def _parser():
             '[--security-group-del group_name] [--create-rule] ' \
             '[--start name_tag] [--reboot name_tag] [--shutdown name_tag] [--delete name_tag] ' \
             '[--dns domain] [--dns-add domain] ' \
-            '[--dns-del domain] [--hostname name] [--address ip_addr] [--help]'.format(__file__)
+            '[--dns-del domain] [--hostname name] [--address ip_addr]' \
+            '[--bill] [--help]'.format(__file__)
     argparser = ArgumentParser(usage=usage)
     argparser.add_argument('-i', '--ini', type=str, default="./config.ini", help='config file')
     argparser.add_argument('--create', action='store_true', help='create a new server')
@@ -55,6 +56,7 @@ def _parser():
     argparser.add_argument('--delete', type=str, help='delete server instance with the tag name')
     argparser.add_argument('--create-rule', action='store_true', help='create a new security group and its rule')
     argparser.add_argument('--security-group-del', type=str, help='delete security group')
+    argparser.add_argument('--bill', action='store_true', help='obtain billing information')
     args = argparser.parse_args()
     return args
 
@@ -500,6 +502,22 @@ def del_dns_record(base_url, token, domain_id, record_id):
         sys.exit(1)
 
 
+def get_billing_info(base_url, tid, token):
+    """Function of getting Billing information"""
+    _api = base_url + tid + '/billing-invoices'
+    _header = {'Accept': 'application/json', 'X-Auth-Token': token}
+
+    try:
+        _res = requests.get(_api, headers=_header)
+        invoices = json.loads(_res.content.decode())['billing_invoices']
+        for i, v in enumerate(invoices):
+            print('{date}:\t{price}'.format(date=v['invoice_date'], price=v['bill_plus_tax']))
+            if i == 3: break
+    except (ValueError, NameError, ConnectionError, RequestException, HTTPError) as e:
+        print('Error: Could not get billing info.\n', e)
+        sys.exit(1)
+
+
 def get_startup_base64(src_path):
     """Function of transforming from shell script to base64 value"""
     with open(src_path, encoding='utf-8') as f:
@@ -524,6 +542,10 @@ if __name__ == '__main__':
     admin_conf, server_conf, rule_conf, api_conf = read_config(arg.ini)
     tenant = admin_conf["TENANT"]
     token = get_conoha_token(api_conf["CONOHA_IDENTITY_ENDPOINT_BASE"], tenant, admin_conf["APIUSER"], admin_conf["APIPASS"])
+
+    if arg.bill:
+        info = get_billing_info(api_conf["CONOHA_ACCOUNT_ENDPOINT_BASE"], tenant, token)
+        sys.exit(0)
 
     if arg.check is not None:
         if arg.check == "images":
